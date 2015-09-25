@@ -17,11 +17,12 @@
 
 auto uCircleCount = 20;
 
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {    
     createActions();
-    createMenus();    
+    createMenus();
 
     QGraphicsView *view = new QGraphicsView;
     scene = new QGraphicsScene(this);
@@ -80,9 +81,10 @@ void MainWindow::createActions()
 void MainWindow::createMenus()
 {
     fileMenu = menuBar()->addMenu(tr("File"));
-    fileMenu->addAction(pExitAction);
-    fileMenu->addAction(pViewAction);
     fileMenu->addAction(pSaveAction);
+    fileMenu->addAction(pSaveAsAction);
+    fileMenu->addAction(pLoadAction);
+    fileMenu->addAction(pExitAction);
 
     viewMenu = menuBar()->addMenu(tr("View"));
     viewMenu->addAction(pViewAction);
@@ -138,8 +140,8 @@ void MainWindow::onSave()
 void MainWindow::onSaveAs()
 {
     QString filename = QFileDialog::getSaveFileName(this,
-                                         tr("Save fig"), ".",
-                                         tr("Fig files (*.fig)"));
+                                                    tr("Save fig"), ".",
+                                                    tr("Fig files (*.fig)"));
 
     QFile file(filename);
     file.open(QIODevice::WriteOnly);
@@ -147,16 +149,16 @@ void MainWindow::onSaveAs()
     QXmlStreamWriter xmlWriter(&file);
     xmlWriter.setAutoFormatting(true);
     xmlWriter.writeStartDocument();
-
     xmlWriter.writeStartElement("Objects");
     for(int i = 0;i < vCircles.size(); i++)
     {
         QRectF rec = vCircles[i].get()->rect();
         xmlWriter.writeStartElement("Object");
-        xmlWriter.writeAttribute(QString("x="),QString::number(rec.x()));
-        xmlWriter.writeAttribute(QString("y="),QString::number(rec.y()));
-        xmlWriter.writeAttribute(QString("width="),QString::number(rec.width()));
-        xmlWriter.writeAttribute(QString("height="),QString::number(rec.height()));
+        xmlWriter.writeAttribute(QString("name"),QString::number(i));
+        xmlWriter.writeAttribute(QString("x"),QString::number(rec.x()));
+        xmlWriter.writeAttribute(QString("y"),QString::number(rec.y()));
+        xmlWriter.writeAttribute(QString("width"),QString::number(rec.width()));
+        xmlWriter.writeAttribute(QString("height"),QString::number(rec.height()));
         xmlWriter.writeEndElement();
     }
     xmlWriter.writeEndElement();
@@ -169,62 +171,39 @@ void MainWindow::onSaveAs()
 void MainWindow::onLoad()
 {
     QString filename = QFileDialog::getOpenFileName(this,
-                                       tr("Open Fig"), ".",
-                                       tr("Fig files (*.fig)"));
+                                                    tr("Open Fig"), ".",
+                                                    tr("Fig files (*.fig)"));
 
-        QFile file(filename);
-        if (!file.open(QFile::ReadOnly | QFile::Text))
-        {
-           // std::cerr << "Error: Cannot read file " << qPrintable(filename)
-           //  << ": " << qPrintable(file.errorString())
-           //  << std::endl;
-        }
-        QXmlStreamReader Rxml;
-        Rxml.setDevice(&file);
+    QFile file(filename);
+    if (!file.open(QFile::ReadOnly | QFile::Text))
+    {
+        // std::cerr << "Error: Cannot read file " << qPrintable(filename)
+        //  << ": " << qPrintable(file.errorString())
+        //  << std::endl;
+    }
+    QXmlStreamReader Rxml;
+    Rxml.setDevice(&file);
+    //Rxml.readNext();
+
+    while(!Rxml.atEnd())
+    {
         Rxml.readNext();
-
-        while(!Rxml.atEnd())
+        qDebug()<<Rxml.name();
+        if(Rxml.isStartElement())
         {
-            if(Rxml.isStartElement())
+            if(Rxml.name() == "Object")
             {
-                if(Rxml.name() == "Objects")
-                {
-                   qDebug()<<Rxml.name();
-                   Rxml.readNext();
-                   qDebug()<<Rxml.name();
-                   int f=0;
 
-                }
-                else if(Rxml.name() == "Object")
-                {
-                   //ReadLightElement(0);//entra
-                }
-                else
-                {
-                  Rxml.raiseError(QObject::tr("Not a bookindex file"));
-                }
+                int x = Rxml.attributes().value("x").toString().toInt();
+                int y = Rxml.attributes().value("y").toString().toInt();
+                int width = Rxml.attributes().value("width").toString().toInt();
+                int height = Rxml.attributes().value("height").toString().toInt();
+                qDebug()<< x << y << width << height;
             }
-            else
-            {
-                READNEXT();
-                }
-       }
-       file.close();
-     /*  if (Rxml.hasError())
-      {
-              std::cerr << "Error: Failed to parse file "
-             << qPrintable(filename) << ": "
-             << qPrintable(Rxml.errorString()) << std::endl;
-      }
-      else if (file.error() != QFile::NoError)
-      {
-          std::cerr << "Error: Cannot read file " << qPrintable(filename)
-                   << ": " << qPrintable(file.errorString())
-                   << std::endl;
-      }*/
-
-     // ShowXmlOnScreen();
-
-      statusBar()->showMessage(tr("Fig Opened"));
+            qDebug()<<Rxml.name();
+        }
+    }
+    file.close();
+    statusBar()->showMessage(tr("Fig Opened"));
 }
 
