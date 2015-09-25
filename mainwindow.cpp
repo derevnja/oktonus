@@ -67,6 +67,11 @@ void MainWindow::createActions()
     pSaveAction = new QAction(tr("Save"),this);
     pSaveAction->setStatusTip(tr("Save active document"));
     connect(pSaveAction, SIGNAL(triggered()),this,SLOT(onSave()));
+    //save as
+    pSaveAsAction = new QAction(tr("Save As"),this);
+    pSaveAsAction->setStatusTip(tr("Save As..."));
+    connect(pSaveAsAction, SIGNAL(triggered()),this,SLOT(onSaveAs()));
+    //load
     pLoadAction = new QAction(tr("Load"),this);
     pLoadAction->setStatusTip(tr("Load document"));
     connect(pLoadAction, SIGNAL(triggered()),this,SLOT(onLoad()));
@@ -88,6 +93,7 @@ void MainWindow::createMenus()
 
 void MainWindow::createCircles()
 {
+
     for (int i = 0; i < uCircleCount; i++)
     {
         auto x = qrand() % 500;
@@ -125,6 +131,11 @@ void MainWindow::onView()
 }
 
 void MainWindow::onSave()
+{
+
+}
+
+void MainWindow::onSaveAs()
 {
     QString filename = QFileDialog::getSaveFileName(this,
                                          tr("Save fig"), ".",

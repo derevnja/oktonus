@@ -20,7 +20,7 @@ public:
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
-private:
+private:    
     void createMenus();
     void createActions();
     void createCircles();
@@ -51,6 +51,8 @@ private slots:
     void onView();
     /// save button pressed
     void onSave();
+    /// save as button pressed
+    void onSaveAs();
     /// save button pressed
     void onLoad();
 };
