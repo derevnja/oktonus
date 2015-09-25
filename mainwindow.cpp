@@ -119,6 +119,9 @@ void MainWindow::onView()
         statusBar()->show();
     else
         statusBar()->hide();
+
+
+
 }
 
 void MainWindow::onSave()
