@@ -17,10 +17,6 @@
 
 auto uCircleCount = 20;
 
-
-
-
-
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {    
