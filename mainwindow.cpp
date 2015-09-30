@@ -117,8 +117,7 @@ void MainWindow::deleteCircles()
 }
 
 void MainWindow::onExit()
-{
-    qDebug()<<"exit pressed";
+{    
     exit(0);
 }
 
@@ -181,7 +180,7 @@ void MainWindow::onLoad()
     QFile file(filename);
     if (!file.open(QFile::ReadOnly | QFile::Text))
     {
-        qDebug()<< "error read file";
+        Q_ASSERT("error read file");
     }
     deleteCircles();
     QXmlStreamReader Rxml;
@@ -190,8 +189,7 @@ void MainWindow::onLoad()
     QXmlStreamReader::TokenType token;
 
     while(!Rxml.atEnd())
-    {
-        qDebug()<<Rxml.name();
+    {        
         if (token == QXmlStreamReader::StartDocument)
             continue;
         if(Rxml.name() == "Object")
@@ -199,8 +197,7 @@ void MainWindow::onLoad()
             int x = Rxml.attributes().value("x").toString().toInt();
             int y = Rxml.attributes().value("y").toString().toInt();
             int width = Rxml.attributes().value("width").toString().toInt();
-            int height = Rxml.attributes().value("height").toString().toInt();
-            qDebug()<< x << y << width << height;
+            int height = Rxml.attributes().value("height").toString().toInt();            
             createCircle(x,y,width,height);
             Rxml.readNext();
         }
