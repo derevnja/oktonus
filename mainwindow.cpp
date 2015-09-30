@@ -36,7 +36,7 @@ MainWindow::MainWindow(QWidget *parent)
     statusLabel->setText("SCRL");
     statusBar()->addPermanentWidget(statusLabel);
 
-    createCircles();
+    generateCircles();
     setCentralWidget(view);
 }
 
@@ -92,20 +92,28 @@ void MainWindow::createMenus()
     helpMenu->addAction(pHelpAction);
 }
 
-void MainWindow::createCircles()
+void MainWindow::generateCircles()
 {
-
     for (int i = 0; i < uCircleCount; i++)
     {
         auto x = qrand() % 500;
         auto y = qrand() % 500;
         auto w = qrand() % 90+10;
         auto h = w;
-        //OktCircle *c = new OktCircle(x,y,w,h);
-        std::unique_ptr<OktCircle> ptr(new OktCircle(x,y,w,h));
-        vCircles.push_back(std::move(ptr));
-        scene->addItem(vCircles.back().get());
+        createCircle(x,y,w,h);
     }
+}
+
+void MainWindow::createCircle(unsigned int x,unsigned int y,unsigned int w,unsigned int h)
+{
+    std::unique_ptr<OktCircle> ptr(new OktCircle(x,y,w,h));
+    vCircles.push_back(std::move(ptr));
+    scene->addItem(vCircles.back().get());
+}
+
+void MainWindow::deleteCircles()
+{
+    vCircles.clear();
 }
 
 void MainWindow::onExit()
@@ -126,9 +134,6 @@ void MainWindow::onView()
         statusBar()->show();
     else
         statusBar()->hide();
-
-
-
 }
 
 void MainWindow::onSave()
@@ -176,31 +181,30 @@ void MainWindow::onLoad()
     QFile file(filename);
     if (!file.open(QFile::ReadOnly | QFile::Text))
     {
-        // std::cerr << "Error: Cannot read file " << qPrintable(filename)
-        //  << ": " << qPrintable(file.errorString())
-        //  << std::endl;
+        qDebug()<< "error read file";
     }
+    deleteCircles();
     QXmlStreamReader Rxml;
     Rxml.setDevice(&file);
     //Rxml.readNext();
+    QXmlStreamReader::TokenType token;
 
     while(!Rxml.atEnd())
     {
-        Rxml.readNext();
         qDebug()<<Rxml.name();
-        if(Rxml.isStartElement())
+        if (token == QXmlStreamReader::StartDocument)
+            continue;
+        if(Rxml.name() == "Object")
         {
-            if(Rxml.name() == "Object")
-            {
-
-                int x = Rxml.attributes().value("x").toString().toInt();
-                int y = Rxml.attributes().value("y").toString().toInt();
-                int width = Rxml.attributes().value("width").toString().toInt();
-                int height = Rxml.attributes().value("height").toString().toInt();
-                qDebug()<< x << y << width << height;
-            }
-            qDebug()<<Rxml.name();
+            int x = Rxml.attributes().value("x").toString().toInt();
+            int y = Rxml.attributes().value("y").toString().toInt();
+            int width = Rxml.attributes().value("width").toString().toInt();
+            int height = Rxml.attributes().value("height").toString().toInt();
+            qDebug()<< x << y << width << height;
+            createCircle(x,y,width,height);
+            Rxml.readNext();
         }
+        Rxml.readNext();
     }
     file.close();
     statusBar()->showMessage(tr("Fig Opened"));

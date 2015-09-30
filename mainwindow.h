@@ -23,7 +23,9 @@ public:
 private:    
     void createMenus();
     void createActions();
-    void createCircles();
+    void generateCircles();
+    void createCircle(unsigned int x,unsigned int y,unsigned int w,unsigned int h);
+    void deleteCircles();
     QMenu *fileMenu;
     QMenu *helpMenu;
     QMenu *viewMenu;

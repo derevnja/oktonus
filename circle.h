@@ -13,6 +13,10 @@ public:
     {
          //this->setBrush(QBrush(Qt::green));
     }
+    ~OktCircle()
+    {
+        qDebug()<<"delete element";
+    }
 };
 
 #endif // CIRCLE
