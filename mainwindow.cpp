@@ -1,5 +1,4 @@
 #include <QGraphicsScene>
-#include <QGraphicsView>
 #include <QPushButton>
 #include <QLayout>
 #include <QMessageBox>
@@ -9,23 +8,33 @@
 #include <QDialog>
 #include <QStatusBar>
 #include <QFileDialog>
+#include <QGraphicsItem>
+#include <QPainter>
+#include <set>
 
 
 #include "mainwindow.h"
 #include "circle.h"
+#include "oktrectangle.h"
+#include "okttriangle.h"
 #include "about.h"
+#include "oktgraphicview.h"
 
 auto uCircleCount = 20;
+using namespace okt;
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
+    : QMainWindow(parent),
+      CREATE_MODE(NONE)
 {    
     createActions();
     createMenus();
 
-    QGraphicsView *view = new QGraphicsView;
+    OktGraphicView *view = new OktGraphicView;
     scene = new QGraphicsScene(this);
+    scene->setSceneRect(0,0,1000,1000);
     view->setScene(scene);
+    connect(view,&OktGraphicView::pressEvent,this,&MainWindow::onPressSceneEvent);
 
     QIcon icon("qrc:///res/FiguresSample0.ico");
     this->setWindowIcon(icon);
@@ -35,8 +44,6 @@ MainWindow::MainWindow(QWidget *parent)
     // set text for the label
     statusLabel->setText("SCRL");
     statusBar()->addPermanentWidget(statusLabel);
-
-    generateCircles();
     setCentralWidget(view);
 }
 
@@ -75,6 +82,19 @@ void MainWindow::createActions()
     pLoadAction = new QAction(tr("Load"),this);
     pLoadAction->setStatusTip(tr("Load document"));
     connect(pLoadAction, SIGNAL(triggered()),this,SLOT(onLoad()));
+
+    //create Squares
+    pCreateSquare = new QAction(tr("Create Square"),this);
+    pCreateSquare->setStatusTip(tr("Create Square"));
+    connect(pCreateSquare, SIGNAL(triggered()),this,SLOT(onCreateSquare()));
+    //create triangle
+    pCreateTriangle = new QAction(tr("Create Triangle"),this);
+    pCreateTriangle->setStatusTip(tr("Create Triangle"));
+    connect(pCreateTriangle, SIGNAL(triggered()),this,SLOT(onCreateTriangle()));
+    //create Circles
+    pCreateCircle = new QAction(tr("Create Circle"),this);
+    pCreateCircle->setStatusTip(tr("Create Circle"));
+    connect(pCreateCircle, SIGNAL(triggered()),this,SLOT(onCreateCircle()));
 }
 
 void MainWindow::createMenus()
@@ -90,30 +110,130 @@ void MainWindow::createMenus()
 
     helpMenu = menuBar()->addMenu(tr("Help"));
     helpMenu->addAction(pHelpAction);
+
+    modeMenu = menuBar()->addMenu(tr("Create Mode"));
+    modeMenu->addAction(pCreateSquare);
+    modeMenu->addAction(pCreateTriangle);
+    modeMenu->addAction(pCreateCircle);
 }
 
-void MainWindow::generateCircles()
-{
-    for (int i = 0; i < uCircleCount; i++)
-    {
-        auto x = qrand() % 500;
-        auto y = qrand() % 500;
-        auto w = qrand() % 90+10;
-        auto h = w;
-        createCircle(x,y,w,h);
-    }
+void MainWindow::generateCircle(QPointF point)
+{    
+   auto x = point.x();
+   auto y = point.y();
+   auto w = qrand() % 90+10;
+   auto h = w;
+   createCircle(x - w/2,y - w/2,w,h);
 }
 
 void MainWindow::createCircle(unsigned int x,unsigned int y,unsigned int w,unsigned int h)
 {
-    std::unique_ptr<OktCircle> ptr(new OktCircle(x,y,w,h));
-    vCircles.push_back(std::move(ptr));
-    scene->addItem(vCircles.back().get());
+    std::unique_ptr<QGraphicsItem> ptr(new OktCircle(x,y,w,h));
+    vDrawObjects.push_back(std::move(ptr));
+    scene->addItem(vDrawObjects.back().get());
 }
 
-void MainWindow::deleteCircles()
+void MainWindow::generateSquare(QPointF point)
 {
-    vCircles.clear();
+   auto x = point.rx();
+   auto y = point.ry();
+   auto w = qrand() % 90+10;
+   auto h = w;
+   createSquare(x-w/2,y-w/2,w,h);
+}
+
+void MainWindow::createSquare(unsigned int x,unsigned int y,unsigned int w,unsigned int h)
+{
+    std::unique_ptr<QGraphicsItem> ptr(new OktRectangle(x,y,w,h));
+    vDrawObjects.push_back(std::move(ptr));
+    scene->addItem(vDrawObjects.back().get());
+}
+
+void MainWindow::generateTringle(QPointF point)
+{
+   auto x = point.rx();
+   auto y = point.ry();
+   auto length = qrand() % 90+10;
+   createTringle(x,y,length);
+}
+
+void MainWindow::createTringle(unsigned int x,unsigned int y,unsigned int length)
+{ 
+    std::unique_ptr<QGraphicsItem> ptr(new OktTriangle(x,y,length));
+    vDrawObjects.push_back(std::move(ptr));
+    scene->addItem(vDrawObjects.back().get());
+    scene->update();
+}
+
+void MainWindow::deleteAllObjects()
+{
+    vDrawObjects.clear();
+}
+
+std::vector< std::unique_ptr<QGraphicsItem> > MainWindow::createObjects(QString fileFromLoad)
+{
+    if (fileFromLoad == "_rect.txt")
+    {
+        QFile file(fileFromLoad);
+        if (!file.open(QFile::ReadOnly | QFile::Text))
+        {
+            Q_ASSERT("error read file");
+        }
+        QXmlStreamReader::TokenType token = QXmlStreamReader::NoToken;
+        QXmlStreamReader Rxml;
+        Rxml.setDevice(&file);
+        std::vector< std::unique_ptr<QGraphicsItem> > local_object_vector;
+
+        while(!Rxml.atEnd())
+        {
+//            if (token == QXmlStreamReader::StartDocument)
+//                continue;
+            if(Rxml.name() == "Object")
+            {
+                unsigned int _x,_y,_w,_h;
+                foreach(const QXmlStreamAttribute &attr, Rxml.attributes())
+                                {
+                                    if (attr.name().toString() == QLatin1String("x"))
+                                    {
+                                        _x = attr.value().toUInt();
+//                                        QString attribute_value = attr.value().toString();
+//                                        qDebug() << attr.name().toString()<< " " <<attribute_value;
+                                    }
+                                    if (attr.name().toString() == QLatin1String("y"))
+                                    {
+                                        _y = attr.value().toUInt();
+
+                                    }
+                                    if (attr.name().toString() == QLatin1String("width"))
+                                    {
+                                        _w = attr.value().toUInt();
+
+                                    }
+                                    if (attr.name().toString() == QLatin1String("height"))
+                                    {
+                                        _h = attr.value().toUInt();
+
+                                    }
+                                }
+
+                std::unique_ptr<QGraphicsItem> ptr(new OktRectangle(_x,_y,_w,_h));
+                vDrawObjects.push_back(std::move(ptr));
+                scene->addItem(vDrawObjects.back().get());
+            }
+            Rxml.readNext();
+        }
+        file.close();
+    }
+    else if (fileFromLoad == "_triangle.txt")
+    {
+
+    }
+    else if (fileFromLoad == "_circle.txt")
+    {
+
+    }
+    std::vector< std::unique_ptr<QGraphicsItem> > some_v;
+    return some_v;
 }
 
 void MainWindow::onExit()
@@ -147,26 +267,27 @@ void MainWindow::onSaveAs()
                                                     tr("Fig files (*.fig)"));
 
     QFile file(filename);
-    file.open(QIODevice::WriteOnly);
-
+    file.remove();
+    file.open(QIODevice::WriteOnly | QIODevice::Append);
     QXmlStreamWriter xmlWriter(&file);
     xmlWriter.setAutoFormatting(true);
-    xmlWriter.writeStartDocument();
-    xmlWriter.writeStartElement("Objects");
-    for(int i = 0;i < vCircles.size(); i++)
+    xmlWriter.writeStartElement("Files");
+    std::set<QString> filesSet;
+    for(int i = 0;i < vDrawObjects.size(); i++)
     {
-        QRectF rec = vCircles[i].get()->rect();
-        xmlWriter.writeStartElement("Object");
-        xmlWriter.writeAttribute(QString("name"),QString::number(i));
-        xmlWriter.writeAttribute(QString("x"),QString::number(rec.x()));
-        xmlWriter.writeAttribute(QString("y"),QString::number(rec.y()));
-        xmlWriter.writeAttribute(QString("width"),QString::number(rec.width()));
-        xmlWriter.writeAttribute(QString("height"),QString::number(rec.height()));
-        xmlWriter.writeEndElement();
+       QString file_name = dynamic_cast<IBaseFigure*>(vDrawObjects[i].get())->saveFigure("",vDrawObjects[i].get());
+       //save returned files in general file with all figures
+       {
+           auto res = filesSet.insert(file_name);
+           if (res.second == true)
+           {
+             xmlWriter.writeStartElement("File");
+             xmlWriter.writeAttribute(QString("file"),file_name);
+             xmlWriter.writeEndElement();
+           }
+       }
     }
     xmlWriter.writeEndElement();
-    xmlWriter.writeEndDocument();
-
     file.close();
     statusBar()->showMessage(tr("*.fig Saved"));
 }
@@ -182,24 +303,19 @@ void MainWindow::onLoad()
     {
         Q_ASSERT("error read file");
     }
-    deleteCircles();
+    deleteAllObjects();
+    QXmlStreamReader::TokenType token = QXmlStreamReader::NoToken;
     QXmlStreamReader Rxml;
     Rxml.setDevice(&file);
-    //Rxml.readNext();
-    QXmlStreamReader::TokenType token;
 
     while(!Rxml.atEnd())
     {        
         if (token == QXmlStreamReader::StartDocument)
             continue;
-        if(Rxml.name() == "Object")
+        if(Rxml.name() == "File")
         {
-            int x = Rxml.attributes().value("x").toString().toInt();
-            int y = Rxml.attributes().value("y").toString().toInt();
-            int width = Rxml.attributes().value("width").toString().toInt();
-            int height = Rxml.attributes().value("height").toString().toInt();            
-            createCircle(x,y,width,height);
-            Rxml.readNext();
+            QString str = Rxml.attributes().value("file").toString();
+            createObjects(str);
         }
         Rxml.readNext();
     }
@@ -207,3 +323,33 @@ void MainWindow::onLoad()
     statusBar()->showMessage(tr("Fig Opened"));
 }
 
+void MainWindow::onPressSceneEvent(QPointF point)
+{
+    if (CREATE_MODE == OKTCIRCLE)
+    {
+        generateCircle(point);
+    }
+    if (CREATE_MODE == OKTSQUARE)
+    {
+        generateSquare(point);
+    }
+    if (CREATE_MODE == OKTTRIANGLE)
+    {
+        generateTringle(point);
+    }
+}
+
+void MainWindow::onCreateSquare()
+{
+    CREATE_MODE = OKTSQUARE;
+}
+
+void MainWindow::onCreateTriangle()
+{
+    CREATE_MODE = OKTTRIANGLE;
+}
+
+void MainWindow::onCreateCircle()
+{
+    CREATE_MODE = OKTCIRCLE;
+}

@@ -15,11 +15,19 @@ FORMS += about.ui
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-    about.cpp
+    about.cpp \
+    oktgraphicview.cpp \
+    oktrectangle.cpp \
+    okttriangle.cpp \
+    oktcircle.cpp
 
 HEADERS  += mainwindow.h \
     circle.h \
-    about.h
+    about.h \
+    oktgraphicview.h \
+    oktrectangle.h \
+    okttriangle.h \
+    ibasefigure.h
 
 RC_FILE = okt.rc
 

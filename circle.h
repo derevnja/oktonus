@@ -1,23 +1,25 @@
 #ifndef CIRCLE
 #define CIRCLE
+#include "ibasefigure.h"
 
 #include <QGraphicsEllipseItem>
 /*!
  * \brief The OktCircle class
  */
-class OktCircle : public QGraphicsEllipseItem
+namespace okt {
+class OktCircle : public QGraphicsEllipseItem, public IBaseFigure
 {
 public:
     OktCircle(qreal x, qreal y, qreal width, qreal height, QGraphicsItem * parent = 0):
         QGraphicsEllipseItem(x,y,width,height,parent)
     {
-         //this->setBrush(QBrush(Qt::green));
+        //this->setBrush(QBrush(Qt::green));
     }
     ~OktCircle()
     {
-        qDebug()<<"delete element";
     }
+    virtual QString saveFigure(QString pathToFolder,QGraphicsItem* object);
 };
-
+}
 #endif // CIRCLE
 
