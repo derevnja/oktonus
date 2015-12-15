@@ -11,6 +11,7 @@ class QGraphicsScene;
 class QStatusBar;
 class OktCircle;
 class QGraphicsItem;
+class IBasePlug;
 
 namespace okt {
 
@@ -24,14 +25,12 @@ public:
     ~MainWindow();
 
 private:    
+    void LoadAllPlugs();
+    void LoadPlugin(QString filePath);
     void createMenus();
     void createActions();
-    void generateCircle(QPointF point);
-    void createCircle(unsigned int x,unsigned int y,unsigned int w,unsigned int h);
     void generateSquare(QPointF point);
-    void createSquare(unsigned int x,unsigned int y,unsigned int w,unsigned int h);
-    void generateTringle(QPointF point);
-    void createTringle(unsigned int x,unsigned int y,unsigned int length);
+    void createSquare(unsigned int x,unsigned int y,unsigned int w,unsigned int h);    
     void deleteAllObjects();
     std::vector< std::unique_ptr<QGraphicsItem> > createObjects(QString fileFromLoad);
     QMenu *fileMenu;
@@ -48,9 +47,11 @@ private:
     QAction *pViewAction;
     QAction *pExitAction;
     QAction *pHelpAction;
-    QAction *pCreateCircle;
-    QAction *pCreateTriangle;
-    QAction *pCreateSquare;
+
+    QList<IBasePlug*> plugList;
+    ///save current plug which draw figure
+    IBasePlug *currentPlug;
+
     QGraphicsScene *scene;
     QStatusBar     *pStatusBar;
     ///keep all circles
@@ -84,6 +85,7 @@ private slots:
     void onCreateTriangle();
     /// on click create circle
     void onCreateCircle();
+    void onPlugAction(IBasePlug *);
 };
 
 }
